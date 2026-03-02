@@ -14,3 +14,46 @@
 #   - Total trip duration
 #   - Recommended departure time to arrive by target time
 # - Use historical delay patterns for confidence scoring
+from app.utils.gtfs_static import GTFSStaticData
+from app.utils.geo import geocode_address, find_nearest_stops, walking_time_minutes
+from app.services.mta_feed import fetch_feeds, parse_bytes
+
+gtfs = GTFSStaticData()
+
+def nearestStops(origin: str, dest: str) -> dict:
+    origin_coords = geocode_address(origin)
+    dest_coords = geocode_address(dest)
+
+    #use these coordinates to find  the nearest stops
+    if origin_coords is  None or dest_coords is None:
+        return "Not a valid address or address out of NYC area"
+    
+    origin_stops = find_nearest_stops(origin_coords[0],origin_coords[1], gtfs.stops_by_id, 5)
+    dest_stops = find_nearest_stops(dest_coords[0],dest_coords[1], gtfs.stops_by_id, 5)
+
+    return {"origin_stops": origin_stops, "dest_stops": dest_stops}
+
+def possibleRoutes(nearest_stops: dict):
+
+    origin_routes = {}
+    dest_routes = {}
+    route_options = []
+
+    for origin_stops in nearest_stops["origin_stops"]:
+        origin_routes[origin_stops["stop_id"]] = gtfs.get_routes_for_stops(origin_stops["stop_id"])
+    
+    for dest_stops in nearest_stops["dest_stops"]:
+        dest_routes[dest_stops["stop_id"]] = gtfs.get_routes_for_stops(dest_stops["stop_id"])
+    
+    #return {"origin_routes": origin_routes, "dest_routes": dest_routes}
+    #find overlapping stations
+
+    for o_stop, o_routes in origin_routes.items():
+        for d_stop, d_routes in dest_routes.items():
+            overlap = o_routes & d_routes
+            if overlap:
+                route_options.append({"origin_stop": o_stop,
+                "dest_stop": d_stop,
+                "routes": overlap})
+    
+    return route_options
