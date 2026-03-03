@@ -17,6 +17,7 @@
 from app.utils.gtfs_static import GTFSStaticData
 from app.utils.geo import geocode_address, find_nearest_stops, walking_time_minutes
 from app.services.mta_feed import fetch_feeds, parse_bytes
+import asyncio
 
 gtfs = GTFSStaticData()
 
@@ -33,7 +34,7 @@ def nearestStops(origin: str, dest: str) -> dict:
 
     return {"origin_stops": origin_stops, "dest_stops": dest_stops}
 
-def possibleRoutes(nearest_stops: dict):
+def possibleRoutes(nearest_stops: dict) -> list:
 
     origin_routes = {}
     dest_routes = {}
@@ -45,7 +46,6 @@ def possibleRoutes(nearest_stops: dict):
     for dest_stops in nearest_stops["dest_stops"]:
         dest_routes[dest_stops["stop_id"]] = gtfs.get_routes_for_stops(dest_stops["stop_id"])
     
-    #return {"origin_routes": origin_routes, "dest_routes": dest_routes}
     #find overlapping stations
 
     for o_stop, o_routes in origin_routes.items():
@@ -57,3 +57,34 @@ def possibleRoutes(nearest_stops: dict):
                 "routes": overlap})
     
     return route_options
+
+async def getSchedule(routes: list) -> list: 
+
+    unique_routes = set()
+
+    for option in routes:
+        for train_line in option["routes"]:
+            unique_routes.add(train_line)
+    
+    #get unique route ids
+    raw_feeds = await fetch_feeds(list(unique_routes))
+    all_updates = []
+
+    for feed in raw_feeds:
+        all_updates.extend(parse_bytes(feed))
+    
+    #return all_updates
+    relevant_stops = set()
+    for option in routes:
+        relevant_stops.add(option["origin_stop"])
+        relevant_stops.add(option["dest_stop"])
+
+    user_scheudle = []
+
+    for update in all_updates:
+        stop = update["stop_id"]
+        parent = stop.rstrip("NS")
+        if parent in relevant_stops or stop in relevant_stops:
+            user_scheudle.append(update)
+    
+    return user_scheudle
