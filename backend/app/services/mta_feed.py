@@ -17,6 +17,7 @@ from google.transit import gtfs_realtime_pb2
 from datetime import datetime, timezone, timedelta
 import httpx
 import asyncio
+import json
 
 EST = timezone(timedelta(hours=-5))
 
@@ -78,7 +79,7 @@ def parse_bytes(rawBytes: bytes) -> list:
                 trip_updates.append({"route_id": route_id,
                 "trip_id": trip_id,
                 "stop_id": stop.stop_id,
-                "arrival_time": datetime.fromtimestamp(stop.arrival.time, tz=EST).strftime("%I:%M %p") if stop.arrival.time else None,
+                "arrival_time": datetime.fromtimestamp(stop.arrival.time, tz=EST).strftime("%I:%M %p") if stop.arrival.time else None, #est time, time is $$$$$
                 "delay": stop.arrival.delay})
             
     

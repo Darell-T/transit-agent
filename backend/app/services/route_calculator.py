@@ -14,6 +14,7 @@
 #   - Total trip duration
 #   - Recommended departure time to arrive by target time
 # - Use historical delay patterns for confidence scoring
+import json
 from app.utils.gtfs_static import GTFSStaticData
 from app.utils.geo import geocode_address, find_nearest_stops, walking_time_minutes
 from app.services.mta_feed import fetch_feeds, parse_bytes
@@ -38,7 +39,7 @@ def possibleRoutes(nearest_stops: dict) -> list:
 
     origin_routes = {}
     dest_routes = {}
-    route_options = []
+    route_options = [] 
 
     for origin_stops in nearest_stops["origin_stops"]:
         origin_routes[origin_stops["stop_id"]] = gtfs.get_routes_for_stops(origin_stops["stop_id"])
@@ -88,3 +89,22 @@ async def getSchedule(routes: list) -> list:
             user_scheudle.append(update)
     
     return user_scheudle
+
+def combine_data(route_options: list, schedule: list, closest_stops: dict) -> json: 
+    combine_data = closest_stops
+    combine_data["possible_routes"] = []
+    combine_data["schedule_for_user_stops_only"] = []
+
+    for route in route_options:
+        combine_data["possible_routes"].append({
+            "origin_stop": route["origin_stop"],
+            "dest_stop": route["dest_stop"],
+            "routes": list(route["routes"])
+        })
+    
+    for stop in schedule:
+        combine_data["schedule_for_user_stops_only"].append(stop)
+    
+    return json.dumps(combine_data)
+
+
