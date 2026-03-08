@@ -16,3 +16,19 @@
 #
 # - JSON serialization helpers for complex objects
 # - Error handling for Redis connection issues
+
+import redis
+import os
+
+redis_client = redis.from_url(os.getenv("REDIS_URL"))
+
+def cache_get(key):
+
+    cached_entry = redis_client.get(key)
+
+    return cached_entry
+
+def cache_set(key, value, ttl_seconds):
+
+    redis_client.setex(key, ttl_seconds, value)
+    

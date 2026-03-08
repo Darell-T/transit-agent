@@ -22,7 +22,7 @@ import asyncio
 
 gtfs = GTFSStaticData()
 
-def nearestStops(origin: str, dest: str) -> dict:
+def nearest_stops(origin: str, dest: str) -> dict:
     origin_coords = geocode_address(origin)
     dest_coords = geocode_address(dest)
 
@@ -35,17 +35,17 @@ def nearestStops(origin: str, dest: str) -> dict:
 
     return {"origin_stops": origin_stops, "dest_stops": dest_stops}
 
-def possibleRoutes(nearest_stops: dict) -> list:
+def possible_routes(stops: dict) -> list:
 
     origin_routes = {}
     dest_routes = {}
     route_options = [] 
 
-    for origin_stops in nearest_stops["origin_stops"]:
-        origin_routes[origin_stops["stop_id"]] = gtfs.get_routes_for_stops(origin_stops["stop_id"])
+    for origin_stop in stops["origin_stops"]:
+        origin_routes[origin_stop["stop_id"]] = gtfs.get_routes_for_stops(origin_stop["stop_id"])
     
-    for dest_stops in nearest_stops["dest_stops"]:
-        dest_routes[dest_stops["stop_id"]] = gtfs.get_routes_for_stops(dest_stops["stop_id"])
+    for dest_stop in stops["dest_stops"]:
+        dest_routes[dest_stop["stop_id"]] = gtfs.get_routes_for_stops(dest_stop["stop_id"])
     
     #find overlapping stations
 
@@ -59,7 +59,7 @@ def possibleRoutes(nearest_stops: dict) -> list:
     
     return route_options
 
-async def getSchedule(routes: list) -> list: 
+async def get_schedule(routes: list) -> list: 
 
     unique_routes = set()
 
