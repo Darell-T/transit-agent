@@ -31,4 +31,15 @@ def cache_get(key):
 def cache_set(key, value, ttl_seconds):
 
     redis_client.setex(key, ttl_seconds, value)
-    
+
+def cache_delete(key):
+    redis_client.delete(key)
+
+def cache_trip_updates(key, feed_data, ttl = 30):
+    cache_set(key, feed_data, ttl)
+
+def cache_incidents(key, incident_data, ttl = 3600):
+    cache_set(key, incident_data, ttl)
+
+def cache_service_alerts(feed_data, ttl = 60):
+    cache_set(feed_data, ttl)

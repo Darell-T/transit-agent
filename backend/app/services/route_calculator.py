@@ -17,8 +17,10 @@
 import json
 from app.utils.gtfs_static import GTFSStaticData
 from app.utils.geo import geocode_address, find_nearest_stops, walking_time_minutes
-from app.services.mta_feed import fetch_feeds, parse_bytes
+from app.services.mta_feed import fetch_feeds, parse_bytes, parse_vehicle_positions
 import asyncio
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 gtfs = GTFSStaticData()
 
@@ -59,7 +61,7 @@ def possible_routes(stops: dict) -> list:
     
     return route_options
 
-async def get_schedule(routes: list) -> list: 
+async def get_schedule(routes: list) -> dict: 
 
     unique_routes = set()
 
@@ -80,20 +82,35 @@ async def get_schedule(routes: list) -> list:
         relevant_stops.add(option["origin_stop"])
         relevant_stops.add(option["dest_stop"])
 
-    user_scheudle = []
+    user_schedule = []
 
     for update in all_updates:
         stop = update["stop_id"]
         parent = stop.rstrip("NS")
         if parent in relevant_stops or stop in relevant_stops:
-            user_scheudle.append(update)
+            user_schedule.append(update)
     
-    return user_scheudle
+    all_positions = []
+    for feed in raw_feeds:
+        all_positions.extend(parse_vehicle_positions(feed))
+    
+    stalled_trains = []
+    
+    for position in all_positions:
+        if position["stop_id"] in relevant_stops and datetime.now(tz=ZoneInfo("America/New_York")).timestamp() - position["timestamp"] > 300:
+            stalled_trains.append(position)
+            
 
-def combine_data(route_options: list, schedule: list, closest_stops: dict) -> json: 
+    
+    return {"user_schedule": user_schedule,
+    "stalled_trains": stalled_trains}
+
+
+def combine_data(route_options: list, schedule: dict, closest_stops: dict) -> json: 
     combine_data = closest_stops
     combine_data["possible_routes"] = []
     combine_data["schedule_for_user_stops_only"] = []
+    combine_data["stalled_trains_at_stops"] = []
 
     for route in route_options:
         combine_data["possible_routes"].append({
@@ -102,8 +119,11 @@ def combine_data(route_options: list, schedule: list, closest_stops: dict) -> js
             "routes": list(route["routes"])
         })
     
-    for stop in schedule:
+    for stop in schedule["user_schedule"]:
         combine_data["schedule_for_user_stops_only"].append(stop)
+    
+    for stalled_train in schedule["stalled_trains"]:
+        combine_data["stalled_trains_at_stops"].append(stalled_train)
     
     return json.dumps(combine_data)
 

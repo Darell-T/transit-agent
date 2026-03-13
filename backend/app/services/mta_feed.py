@@ -14,12 +14,13 @@
 #   - Bus: https://bustime.mta.info/api/siri/vehicle-monitoring.json
 
 from google.transit import gtfs_realtime_pb2
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import httpx
 import asyncio
 import json
 
-EST = timezone(timedelta(hours=-5))
+NYC_TZ = ZoneInfo("America/New_York")
 
 BASE_URL = "https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtfs"
 
@@ -79,11 +80,39 @@ def parse_bytes(rawBytes: bytes) -> list:
                 trip_updates.append({"route_id": route_id,
                 "trip_id": trip_id,
                 "stop_id": stop.stop_id,
-                "arrival_time": datetime.fromtimestamp(stop.arrival.time, tz=EST).strftime("%I:%M %p") if stop.arrival.time else None, #est time, time is $$$$$
+                "arrival_time": datetime.fromtimestamp(stop.arrival.time, tz=NYC_TZ).strftime("%I:%M %p") if stop.arrival.time else None,
                 "delay": stop.arrival.delay})
             
     
     return trip_updates
 
+def parse_vehicle_positions(rawBytes: bytes) -> list:
+    locations = gtfs_realtime_pb2.FeedMessage()
+    locations.ParseFromString(rawBytes)
 
+    vehicle_positions = []
+
+    for entity in locations.entity:
+        if entity.HasField("vehicle"):
+            vehicle = entity.vehicle
+
+
+            trip_id = vehicle.trip.trip_id
+            route_id = vehicle.trip.route_id
+            coordinates = (vehicle.position.latitude, vehicle.position.longitude)
+            stop_id = vehicle.stop_id
+            status = str(vehicle.current_status)
+            timestamp = vehicle.timestamp
+
+
+            vehicle_positions.append({
+                "trip_id": trip_id,
+                "route_id": route_id,
+                "coordinates": coordinates,
+                "stop_id": stop_id,
+                "status": status,
+                "timestamp": timestamp
+            })
+    
+    return vehicle_positions
 

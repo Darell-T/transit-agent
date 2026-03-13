@@ -87,7 +87,7 @@ def get_incidents(route_stops: list) -> str:
 
     station_names = ", ".join(route_stops)
 
-    chat = client.chat.create(model = "grok-4.1-fast")
+    chat = client.chat.create(model = "grok-4-1-fast-reasoning")
     chat.append(system(GROK_SYSTEM_PROMPT))
     chat.append(user(
         f"Check for incidents near these subway stations: {station_names}"
