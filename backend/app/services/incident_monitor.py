@@ -83,7 +83,7 @@ If no incidents are found, respond with: {"incidents": []}
 Only report real, specific incidents from actual posts. 
 Do not speculate or make up incidents. If you are unsure, do not include it."""
 
-def get_incidents(route_stops: list) -> str:
+async def get_incidents(route_stops: list) -> str:
 
     station_names = ", ".join(route_stops)
 

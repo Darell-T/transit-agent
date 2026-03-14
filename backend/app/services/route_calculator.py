@@ -24,9 +24,14 @@ from zoneinfo import ZoneInfo
 
 gtfs = GTFSStaticData()
 
-def nearest_stops(origin: str, dest: str) -> dict:
-    origin_coords = geocode_address(origin)
-    dest_coords = geocode_address(dest)
+async def nearest_stops(origin: str, dest: str) -> dict:
+
+    coordinates = await asyncio.gather(
+        asyncio.to_thread(geocode_address, origin),
+        asyncio.to_thread (geocode_address, dest))
+
+    origin_coords = coordinates[0]
+    dest_coords = coordinates[1]
 
     #use these coordinates to find  the nearest stops
     if origin_coords is  None or dest_coords is None:

@@ -37,7 +37,8 @@ route_to_feed = {
 
 
 async def fetch_feeds(routes: list) -> list:
-    # get unique feed URLs needed for the given routes
+    from app.utils.cache import cache_get, cache_set
+
     unique_suffixes = set()
     for route in routes:
         if route in route_to_feed:
@@ -47,18 +48,30 @@ async def fetch_feeds(routes: list) -> list:
         print("Error: No valid train routes provided.")
         return []
 
-    # build URLs from unique suffixes
     urls = []
     for suffix in unique_suffixes:
         url = f"{BASE_URL}-{suffix}" if suffix else BASE_URL
         urls.append(url)
 
-    # fetch all feeds in parallel
-    async with httpx.AsyncClient() as client:
-        tasks = [client.get(url) for url in urls]
-        responses = await asyncio.gather(*tasks)
+    results = []
+    urls_to_fetch = []
 
-    return [r.content for r in responses]
+    for url in urls:
+        cached = cache_get(url)
+        if cached:
+            results.append((url, cached))
+        else:
+            urls_to_fetch.append(url)
+
+    if urls_to_fetch:
+        async with httpx.AsyncClient() as client:
+            tasks = [client.get(url) for url in urls_to_fetch]
+            responses = await asyncio.gather(*tasks)
+        for url, response in zip(urls_to_fetch, responses):
+            cache_set(url, response.content, 30)
+            results.append((url, response.content))
+
+    return [content for _, content in results]
     
 
 
