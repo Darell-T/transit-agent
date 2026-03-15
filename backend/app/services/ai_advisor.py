@@ -50,15 +50,15 @@ Do not repeat raw data.
 You are not a chatbot -- you are a personal transit intelligence."""
 
 
-def get_recommendation(transit_data: str, incident_data: str):
+async def get_recommendation(transit_data: str, incident_data: str):
     payload = json.loads(transit_data)
     payload["incidents"] = json.loads(incident_data)
 
-    with client.messages.stream(
-        model="claude-sonnet-4-6-20260220",
+    response = await client.messages.create(
+        model="claude-sonnet-4-5",
         max_tokens=1024,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": json.dumps(payload)}]
-    ) as stream:
-        for text in stream.text_stream:
-            yield text
+    )
+
+    return response.content[0].text

@@ -10,3 +10,14 @@
 #   - Start background task for periodic MTA feed polling
 # - Include routers from routers/ directory
 # - Health check endpoint
+from fastapi import FastAPI
+from app.routers import thinking, trips
+
+app = FastAPI()
+
+app.include_router(thinking.router)
+app.include_router(trips.router)
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

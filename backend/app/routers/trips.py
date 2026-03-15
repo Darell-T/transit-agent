@@ -12,6 +12,7 @@
 #   5. Compute confidence score based on current conditions and historical data
 #   6. Return TripResponse with recommendation, route legs, and alternatives
 # - Store trip in database
+import base64
 import asyncio
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
@@ -19,6 +20,7 @@ from pydantic import BaseModel
 from app.services.route_calculator import nearest_stops, possible_routes, get_schedule, combine_data
 from app.services.ai_advisor import get_recommendation
 from app.services.incident_monitor import get_incidents
+from backend.app.services.voice import generate_speech
 
 router = APIRouter()
 
@@ -49,5 +51,10 @@ async def plan_trip(request: TripRequest):
     incident_reports = route_data[1]
 
     combined_data = combine_data(route_options, user_schedule, closest_stops)
-    
-    return StreamingResponse(get_recommendation(combined_data, incident_reports), media_type="text/plain")
+   
+    text = await get_recommendation(combined_data, incident_reports)
+    audio = generate_speech(text)
+    audio_bytes = base64.b64encode(b"".join(audio)).decode("utf-8")
+
+    return {"text": text,
+    "audio": audio_bytes}
